@@ -11,6 +11,7 @@ import tensorflow as tf
 from tensorflow.python.framework import ops
 import matplotlib.pyplot as plt
 import time
+from sklearn import metrics, preprocessing, linear_model
 #from tf_utils import load_dataset, random_mini_batches, convert_to_one_hot, predict
 import os
 os.chdir('c:\\Users\\Roman\\Documents\\Projects\\Numerai\\numerai_datasets')
@@ -34,10 +35,10 @@ y_validation = np.array(validation['target_bernie']).reshape(1, -1)
 ids = tournament['id']
 
 ### tune hyperparameters:
-learning_rate = 5e-5 
-num_epochs = 300
-minibatch_size = 1000
-keep_prob = 1
+learning_rate = 1e-5 
+num_epochs = 500
+minibatch_size = 200
+keep_prob = 0.8
 
 ### train and evaluate NN:
 import NN_functions as nn
@@ -53,7 +54,6 @@ print("number of minibatches: " + str(round(X_trainNN.shape[1]/minibatch_size)))
 print("number of iterations: " + str(num_epochs * round(X_trainNN.shape[1]/minibatch_size)))
 print("dropout probability: " + str(keep_prob))
 print("training time: " + str(round(end - start)) + " seconds")
-print("cost: " + str(costs[-1]))
 
 y_hat_train = nn.sigmoid(nn.pred(X_trainNN, parameters))
 accuracy_train = np.sum([np.round(y_hat_train) == Y_trainNN]) / Y_trainNN.shape[1]
@@ -62,6 +62,10 @@ print("train accuracy: ", accuracy_train)
 y_hat_val = nn.sigmoid(nn.pred(x_validation, parameters))
 accuracy_val = np.sum([np.round(y_hat_val) == y_validation]) / y_validation.shape[1]
 print("validation accuracy: ", accuracy_val)
+
+print("training loss: " + str(costs[-1]))
+logloss = metrics.log_loss(pd.Series(y_validation[0,:]), y_hat_val[0,:])
+print("validation loss: ", logloss)
 
 plt.plot(costs)
 plt.title("costs")
