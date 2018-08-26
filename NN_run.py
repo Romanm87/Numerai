@@ -34,12 +34,13 @@ X_trainNN = np.array(train_bernie[features].T)   #rows: number of features, cols
 Y_trainNN = np.array(train_bernie['target_bernie']).reshape(1, -1)
 x_validation = np.array(validation[features].T)
 y_validation = np.array(validation['target_bernie']).reshape(1, -1)
+x_tournament = np.array(tournament[features].T)
 ids = tournament['id']
 
 ### tune hyperparameters:
 learning_rate = 1e-5 
-num_epochs = 400
-minibatch_size = 250
+num_epochs = 5
+minibatch_size = 1000
 keep_prob = 0.8
 
 ### train and evaluate NN:
@@ -55,22 +56,21 @@ print("number of minibatches: " + str(round(X_trainNN.shape[1]/minibatch_size)))
 print("number of iterations: " + str(num_epochs * round(X_trainNN.shape[1]/minibatch_size)))
 print("dropout probability: " + str(keep_prob))
 print("training time: " + str(round(end - start)) + " seconds")
+
 y_hat_train = nn.sigmoid(nn.pred(X_trainNN, parameters))
 accuracy_train = np.sum([np.round(y_hat_train) == Y_trainNN]) / Y_trainNN.shape[1]
 print("train accuracy: ", accuracy_train)
 y_hat_val = nn.sigmoid(nn.pred(x_validation, parameters))
-
-if not sys.warnoptions:
-    warnings.simplefilter("ignore")
-
-# add predictions to validation pd.df:
-validation['pred'] = pd.Series(y_hat_val[0,:])
 accuracy_val = np.sum([np.round(y_hat_val) == y_validation]) / y_validation.shape[1]
 print("validation accuracy: ", accuracy_val)
 print("training loss: " + str(costs[-1]))
 logloss = metrics.log_loss(pd.Series(y_validation[0,:]), y_hat_val[0,:])
 print("validation loss: " + str(logloss))
 
+# add predictions to validation pd.df:
+if not sys.warnoptions:
+    warnings.simplefilter("ignore")
+validation['pred'] = pd.Series(y_hat_val[0,:])
 eras = validation.era.unique()
 dfs = {}
 for era in eras[:-1]:
@@ -88,4 +88,11 @@ for i in range(sum(logloss_era >= -np.log(0.5))):
 plt.plot(costs)
 plt.title("costs")
 plt.show()
+
+# Write to csv:
+y_hat_tournament = nn.sigmoid(nn.pred(x_tournament, parameters))
+y_hat_tournament_df = pd.DataFrame(y_hat_tournament)
+joined = pd.DataFrame(ids).join(np.transpose(y_hat_tournament_df))
+joined.to_csv("bernie_submission_RM.csv", index=False)
+
 
