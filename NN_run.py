@@ -12,6 +12,8 @@ from tensorflow.python.framework import ops
 import matplotlib.pyplot as plt
 import time
 from sklearn import metrics, preprocessing, linear_model
+import sys
+import warnings
 #from tf_utils import load_dataset, random_mini_batches, convert_to_one_hot, predict
 import os
 os.chdir('c:\\Users\\Roman\\Documents\\Projects\\Numerai\\numerai_datasets')
@@ -36,8 +38,8 @@ ids = tournament['id']
 
 ### tune hyperparameters:
 learning_rate = 1e-5 
-num_epochs = 500
-minibatch_size = 200
+num_epochs = 400
+minibatch_size = 250
 keep_prob = 0.8
 
 ### train and evaluate NN:
@@ -46,7 +48,6 @@ import NN_functions as nn
 start = time.time()
 parameters, costs = nn.model(X_trainNN, Y_trainNN, keep_prob, learning_rate, num_epochs, minibatch_size)
 end = time.time()
-
 print("number of examples: " + str(X_trainNN.shape[1]))
 print("number of epochs: " + str(num_epochs))
 print("minibatch size: " + str(minibatch_size))
@@ -54,32 +55,37 @@ print("number of minibatches: " + str(round(X_trainNN.shape[1]/minibatch_size)))
 print("number of iterations: " + str(num_epochs * round(X_trainNN.shape[1]/minibatch_size)))
 print("dropout probability: " + str(keep_prob))
 print("training time: " + str(round(end - start)) + " seconds")
-
 y_hat_train = nn.sigmoid(nn.pred(X_trainNN, parameters))
 accuracy_train = np.sum([np.round(y_hat_train) == Y_trainNN]) / Y_trainNN.shape[1]
 print("train accuracy: ", accuracy_train)
-
 y_hat_val = nn.sigmoid(nn.pred(x_validation, parameters))
+
+if not sys.warnoptions:
+    warnings.simplefilter("ignore")
+
+# add predictions to validation pd.df:
+validation['pred'] = pd.Series(y_hat_val[0,:])
 accuracy_val = np.sum([np.round(y_hat_val) == y_validation]) / y_validation.shape[1]
 print("validation accuracy: ", accuracy_val)
-
 print("training loss: " + str(costs[-1]))
 logloss = metrics.log_loss(pd.Series(y_validation[0,:]), y_hat_val[0,:])
-print("validation loss: ", logloss)
+print("validation loss: " + str(logloss))
+
+eras = validation.era.unique()
+dfs = {}
+for era in eras[:-1]:
+    dfs[era] = validation[validation['era'] == era]
+logloss_era = pd.Series()
+for era in eras[:-1]:
+    logloss_era[era] = metrics.log_loss(dfs[era]['target_bernie'], dfs[era]['pred'])
+    logloss_era[era] = metrics.log_loss(dfs[era]['target_bernie'], dfs[era]['pred'])
+consistency = round(100 * sum(logloss_era < -np.log(0.5)) / logloss_era.shape[0], 2)
+print("Consistency: " + str(consistency))
+print("eras with too high logloss: ")
+for i in range(sum(logloss_era >= -np.log(0.5))):
+    print(logloss_era.index[logloss_era > -np.log(0.5)][i] +": "+ str(round(logloss_era[logloss_era > -np.log(0.5)][i],4)))
 
 plt.plot(costs)
 plt.title("costs")
 plt.show()
-
-
-    
-
-
-
-
-
-
-
-
-
 
