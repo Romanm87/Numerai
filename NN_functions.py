@@ -6,7 +6,7 @@ Created on Fri Aug 24 06:49:14 2018
 """
 from __main__ import *
 
-### sigmoid function:
+##### sigmoid function:
 def sigmoid(z):
     x = tf.placeholder(tf.float32, name = 'x')
     sigmoid = tf.sigmoid(x)
